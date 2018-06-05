@@ -1,5 +1,9 @@
 package FoxdouRedis;
 
+import java.util.List;
+
+import com.alibaba.otter.canal.protocol.CanalEntry.Column;
+
 import redis.clients.jedis.Jedis;  
 import redis.clients.jedis.JedisPool;  
 import redis.clients.jedis.JedisPoolConfig;  
@@ -8,64 +12,16 @@ import redis.clients.jedis.JedisPoolConfig;
 
 public class RedisClient {
 
-//	public static void main(String[] args) {
-//		// TODO Auto-generated method stub
-//		System.out.println("Hello World!!!");
-//		
-//		  Jedis jedis = new Jedis("127.0.0.1", 6379);
-//	        jedis.auth("sl788zdfwc8zi");
-//		  	jedis.select(0);
-//
-//	        jedis.set("redis_first", "hello");
-//	        System.out.println("key redis_first:"+jedis.get("redis_first"));
-//		
-//	}
-	
-	 //
-    private static String ADDR = "127.0.0.1";  
-
-    //
-    private static int PORT = 6379;
-
-    // 
-    private static String AUTH = "sl788zdfwc8zi";  
-
-    private static int db = 7;
-    
-    // 
-    // 
-    private static int MAX_ACTIVE = 1024;  
-
-    // 
-    private static int MAX_IDLE = 200;  
-
-    // 
-    private static int MAX_WAIT = 10000;  
-
-    //
-    protected static int  expireTime = 660 * 660 *24;  
-
-    //
     protected static JedisPool pool;  
 
     /** 
      * 
      */  
     static {
-    	RedisConfig configFromFile = new RedisConfig();
-    	
-        JedisPoolConfig config = new JedisPoolConfig();  
-        
-        
-        // 
-        config.setMaxTotal(MAX_ACTIVE);  
-        //
-        config.setMaxIdle(MAX_IDLE);  
-        //
-        config.setMaxWaitMillis(MAX_WAIT);  
-        
-        config.setTestOnBorrow(false);  
-        pool = new JedisPool(config, ADDR, PORT, 1000);  
+    	RedisConfig configFromFile = new RedisConfig();    	
+    	configFromFile.loadConfig(); 
+    	System.out.println("In task process..."+RedisConfig.host);
+    	pool = new JedisPool(RedisConfig.config, RedisConfig.host, RedisConfig.port, 1000);  
     }  
 
     /** 
@@ -75,13 +31,16 @@ public class RedisClient {
         Jedis jedis = null;  
         try {  
             jedis = pool.getResource();
-            jedis.auth(RedisClient.AUTH);
-            jedis.select(RedisClient.db);
+            if(RedisConfig.auth!="") {
+            	jedis.auth(RedisConfig.auth);
+            }            
+            jedis.select(RedisConfig.db);
         } catch (Exception e) {  
             e.printStackTrace();  
             if (jedis != null) {  
                 pool.returnBrokenResource(jedis);  
-            }  
+            }
+            RedisConfig.log("Error", e.getMessage());
         }  
         return jedis;  
     }  
@@ -114,7 +73,7 @@ public class RedisClient {
         boolean isBroken = false;  
         try {  
             jedis = getJedis();  
-            jedis.select(RedisClient.db);  
+            
             return jedis.exists(key);  
         } catch (Exception e) {  
             isBroken = true;  
@@ -153,10 +112,12 @@ public class RedisClient {
         boolean isBroken = false;  
         String lastVal = null;  
         try {  
-            jedis = getJedis();  
-              
-            lastVal = jedis.get(key);  
-            jedis.expire(key, expireTime);  
+            jedis = getJedis();
+            lastVal = jedis.get(key);
+            if(RedisConfig.ttl!=-1) {
+            	jedis.expire(key, RedisConfig.ttl);  
+            }
+            
         } catch (Exception e) {  
             isBroken = true;  
         } finally {  
@@ -179,7 +140,9 @@ public class RedisClient {
             jedis = getJedis();  
               
             lastVal = jedis.set(key, value);  
-            jedis.expire(key, expireTime);  
+            if(RedisConfig.ttl!=-1) {
+            	jedis.expire(key, RedisConfig.ttl);  
+            }
         } catch (Exception e) {  
             e.printStackTrace();  
             isBroken = true;  
@@ -203,18 +166,35 @@ public class RedisClient {
             jedis = getJedis();  
             if (jedis != null) {
                 jedis.hset(key, field, value);  
-                jedis.expire(key, expireTime);  
+                if(RedisConfig.ttl!=-1) {
+                	jedis.expire(key, RedisConfig.ttl);  
+                }
             }  
         } catch (Exception e) {  
             isBroken = true;  
         } finally {  
             closeResource(jedis, isBroken);  
         }  
-    }  
-	
+    }
+   
     
-    public static void scriptSet() {
-    	
+    public static boolean scriptSet(String database,String table,String eventType,String value,String $lua) {
+    	 boolean isBroken = false;  
+         Jedis jedis = null;  
+//         try {  
+             jedis = getJedis();  
+             if (jedis != null) {
+            	 jedis.eval($lua,3,database,table,eventType,value);
+             }  
+//             return true;
+//         } catch (Exception e) {  
+//             isBroken = true;
+//             RedisConfig.log("error", "redis script error");
+//             RedisConfig.log("error", e.getMessage());
+//         } finally {  
+//             closeResource(jedis, isBroken);
+//         }
+		return isBroken;  
     }
 
 }

@@ -28,7 +28,7 @@ public class ClientCanalConnectRedis {
 	        connector.rollback();
 	        int totalEmptyCount = 120;
 	        while (emptyCount < totalEmptyCount) {
-	            Message message = connector.getWithoutAck(batchSize); // »ñÈ¡Ö¸¶¨ÊýÁ¿µÄÊý¾Ý
+	            Message message = connector.getWithoutAck(batchSize); // ï¿½ï¿½È¡Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	            long batchId = message.getId();
 	            int size = message.getEntries().size();
 	            if (batchId == -1 || size == 0) {
@@ -44,8 +44,8 @@ public class ClientCanalConnectRedis {
 	                printEntry(message.getEntries());
 	            }
 	
-	            connector.ack(batchId); // Ìá½»È·ÈÏ
-	            // connector.rollback(batchId); // ´¦ÀíÊ§°Ü, »Ø¹öÊý¾Ý
+	            connector.ack(batchId); // ï¿½á½»È·ï¿½ï¿½
+	            // connector.rollback(batchId); // ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½, ï¿½Ø¹ï¿½ï¿½ï¿½ï¿½ï¿½
 	        }
 	
 	        System.out.println("empty too many times, exit");
@@ -113,18 +113,18 @@ public class ClientCanalConnectRedis {
         if(columns.size()>0){  
         	
         	
-            RedisClient.stringSet(""+ columns.get(0).getValue(),json.toJSONString());  
+            RedisClient.stringSet("user:"+ columns.get(0).getValue(),json.toJSONString());  
         }  
     }  
 
      private static  void redisDelete( List<Column> columns){  
          JSONObject json=new JSONObject();  
-            for (Column column : columns) {    
-                json.put(column.getName(), column.getValue());    
-             }    
-            if(columns.size()>0){  
-                RedisClient.delKey("user:"+ columns.get(0).getValue());  
-            }  
+	        for (Column column : columns) {    
+	            json.put(column.getName(), column.getValue());    
+	         }    
+	        if(columns.size()>0){  
+	            RedisClient.delKey("user:"+ columns.get(0).getValue());  
+	        }  
      }  
 	
 }

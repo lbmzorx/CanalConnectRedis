@@ -1,0 +1,21 @@
+{
+	"task1":{
+		"taskname":"sysnmsyqlredis",
+		"database":"chonglou",
+		"table":"yzb_order_sup",
+		"eventType":"insert",
+		"taskDrive":"redis",
+		"taskType":"lua",
+		"taskScript":"conf/redis/yzb_order_sup.syns.lua",
+		"errorRetry":3,		
+	},
+	"task2":{
+		"database":"foxdou",
+		"table":"yzb_order_sup",
+		"eventType":"insert",
+		"taskType":"lua",
+		"taskScript":"conf/redis/yzb_order_sup.syns.lua",
+		"ErrorRetry":3,
+		"ErrorLog":"error_redis.log"
+	}
+}
