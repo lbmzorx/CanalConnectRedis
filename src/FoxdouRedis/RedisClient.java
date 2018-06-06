@@ -40,7 +40,7 @@ public class RedisClient {
             if (jedis != null) {  
                 pool.returnBrokenResource(jedis);  
             }
-            RedisConfig.log("Error", e.getMessage());
+            RedisConfig.log("Error", "no redis pool is avaliable"+e.getMessage());
         }  
         return jedis;  
     }  
@@ -181,20 +181,39 @@ public class RedisClient {
     public static boolean scriptSet(String database,String table,String eventType,String value,String $lua) {
     	 boolean isBroken = false;  
          Jedis jedis = null;  
-//         try {  
+         try {  
              jedis = getJedis();  
              if (jedis != null) {
-            	 jedis.eval($lua,3,database,table,eventType,value);
+            	 jedis.eval($lua,4,new String[]{database,table,eventType,value});
              }  
-//             return true;
-//         } catch (Exception e) {  
-//             isBroken = true;
-//             RedisConfig.log("error", "redis script error");
-//             RedisConfig.log("error", e.getMessage());
-//         } finally {  
-//             closeResource(jedis, isBroken);
-//         }
+             return true;
+         } catch (Exception e) {  
+             isBroken = true;
+             RedisConfig.log("error", "redis script error");
+             RedisConfig.log("error", e.getMessage());
+         } finally {  
+             closeResource(jedis, isBroken);
+         }
 		return isBroken;  
     }
 
+    public static boolean scriptSet(String database,String table,String eventType,String valueBefore,String valueAfter,String $lua) {
+   	 boolean isBroken = false;  
+        Jedis jedis = null;  
+        try {  
+            jedis = getJedis();  
+            if (jedis != null) {
+           	 jedis.eval($lua,5,new String[]{database,table,eventType,valueBefore,valueAfter});
+            }  
+            return true;
+        } catch (Exception e) {  
+            isBroken = true;
+            RedisConfig.log("error", "redis script error");
+            RedisConfig.log("error", e.getMessage());
+        } finally {  
+            closeResource(jedis, isBroken);
+        }
+		return isBroken;  
+   }
+    
 }

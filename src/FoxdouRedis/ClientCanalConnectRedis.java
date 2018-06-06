@@ -26,6 +26,9 @@ public class ClientCanalConnectRedis {
 	        connector.connect();
 	        connector.subscribe(".*\\..*");
 	        connector.rollback();
+	        
+	        Task.loadConfig();
+	        
 	        int totalEmptyCount = 120;
 	        while (emptyCount < totalEmptyCount) {
 	            Message message = connector.getWithoutAck(batchSize); // ��ȡָ������������
@@ -73,20 +76,27 @@ public class ClientCanalConnectRedis {
 	                                         entry.getHeader().getLogfileName(), entry.getHeader().getLogfileOffset(),
 	                                         entry.getHeader().getSchemaName(), entry.getHeader().getTableName(),
 	                                         eventType));
-	
+	       
 	        for (RowData rowData : rowChage.getRowDatasList()) {
-	            if (eventType == EventType.DELETE) {
-	                printColumn(rowData.getBeforeColumnsList());
-	            } else if (eventType == EventType.INSERT) {
-	                printColumn(rowData.getAfterColumnsList());
-	            } else {
-	                System.out.println("-------> before");
-	                printColumn(rowData.getBeforeColumnsList());
-	                System.out.println("-------> after");
-	                printColumn(rowData.getAfterColumnsList());
-	            }
+	        	if (eventType == EventType.DELETE) {
+	        		redisDelete(entry.getHeader().getSchemaName(),entry.getHeader().getTableName(),rowData.getBeforeColumnsList());
+                   
+                } else if (eventType == EventType.INSERT) {
+                    redisInsert(entry.getHeader().getSchemaName(),entry.getHeader().getTableName(),rowData.getAfterColumnsList());
+                } else {  
+                    System.out.println("-------> before");  
+                    printColumn(rowData.getBeforeColumnsList());  
+                    System.out.println("-------> after");  
+                    printColumn(rowData.getAfterColumnsList());  
+                    redisUpdate(entry.getHeader().getSchemaName(),entry.getHeader().getTableName(),rowData.getBeforeColumnsList(),rowData.getAfterColumnsList());
+                }  
+	        	
+	        	 printColumn(rowData.getBeforeColumnsList());  
+	        	System.out.println("ttt task..."+rowData.toString());
+	        
 	        }
 	    }
+	   
 	}
 
 	private static void printColumn(List<Column> columns) {
@@ -95,35 +105,39 @@ public class ClientCanalConnectRedis {
 	    }
 	}
 	
-	private static void redisInsert( List<Column> columns){  
+	
+	private static void redisInsert(String database,String table, List<Column> columns){  
         JSONObject json=new JSONObject();  
         for (Column column : columns) {    
             json.put(column.getName(), column.getValue());    
          }    
-        if(columns.size()>0){  
-            RedisClient.stringSet("user:"+ columns.get(0).getValue(),json.toJSONString());  
+        if(columns.size()>0){ 
+            Task.newtask(database,table,"INSERT",json.toString());
         }  
      }  
 
-    private static  void redisUpdate( List<Column> columns){  
-        JSONObject json=new JSONObject();  
-        for (Column column : columns) {    
-            json.put(column.getName(), column.getValue());    
-         }    
-        if(columns.size()>0){  
-        	
-        	
-            RedisClient.stringSet("user:"+ columns.get(0).getValue(),json.toJSONString());  
+    private static void redisUpdate(String database,String table, List<Column> columnsBefore,List<Column> columnsAfter){  
+        JSONObject jsonBefore=new JSONObject();  
+        JSONObject jsonAfter=new JSONObject();  
+        for (Column column : columnsBefore) {    
+        	jsonBefore.put(column.getName(), column.getValue());    
+        }  
+        
+        for (Column column : columnsBefore) {    
+        	jsonAfter.put(column.getName(), column.getValue());    
+        }  
+        if(columnsAfter.size()>0){
+        	Task.newtask(database,table,"UPDATE",jsonBefore.toString(),jsonAfter.toString());
         }  
     }  
 
-     private static  void redisDelete( List<Column> columns){  
+     private static  void redisDelete(String database,String table, List<Column> columns){  
          JSONObject json=new JSONObject();  
 	        for (Column column : columns) {    
 	            json.put(column.getName(), column.getValue());    
 	         }    
-	        if(columns.size()>0){  
-	            RedisClient.delKey("user:"+ columns.get(0).getValue());  
+	        if(columns.size()>0) {
+	            Task.newtask(database,table,"DELETE",json.toString());
 	        }  
      }  
 	
